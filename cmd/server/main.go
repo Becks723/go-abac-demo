@@ -8,6 +8,7 @@ import (
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 
 	"go-abac-demo/internal/abac"
+	"go-abac-demo/internal/abac/rules"
 )
 
 func main() {
@@ -84,12 +85,12 @@ func main() {
 
 func defaultRules() []abac.Rule {
 	return []abac.Rule{
-		abac.RegionRule{},
-		abac.TimeRule{},
-		abac.PointsRule{},
-		abac.ExplicitPermissionRule{},
-		abac.SameDepartmentViewRule{},
-		abac.OwnerDraftRule{},
+		rules.Region{},
+		rules.Time{},
+		rules.Points{},
+		rules.ExplicitPermission{},
+		rules.SameDepartmentView{},
+		rules.OwnerDraft{},
 	}
 }
 
