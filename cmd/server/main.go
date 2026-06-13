@@ -7,8 +7,8 @@ import (
 	"github.com/cloudwego/hertz/pkg/app/server"
 	"github.com/cloudwego/hertz/pkg/protocol/consts"
 
-	"go-abac-demo/internal/abac"
-	"go-abac-demo/internal/abac/rules"
+	"github.com/Becks723/go-abac-demo/internal/abac"
+	"github.com/Becks723/go-abac-demo/internal/abac/rules"
 )
 
 func main() {

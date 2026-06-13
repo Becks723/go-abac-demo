@@ -1,6 +1,6 @@
 package rules
 
-import "go-abac-demo/internal/abac"
+import "github.com/Becks723/go-abac-demo/internal/abac"
 
 type Time struct{}
 

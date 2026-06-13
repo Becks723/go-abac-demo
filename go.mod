@@ -1,4 +1,4 @@
-module go-abac-demo
+module github.com/Becks723/go-abac-demo
 
 go 1.22
 

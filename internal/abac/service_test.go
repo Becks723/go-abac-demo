@@ -3,8 +3,8 @@ package abac_test
 import (
 	"testing"
 
-	"go-abac-demo/internal/abac"
-	"go-abac-demo/internal/abac/rules"
+	"github.com/Becks723/go-abac-demo/internal/abac"
+	"github.com/Becks723/go-abac-demo/internal/abac/rules"
 )
 
 func TestCheckAccessExplicitPermission(t *testing.T) {
