@@ -35,6 +35,9 @@ curl -X POST http://localhost:8888/events \
 curl http://localhost:8888/users/u1/points
 ```
 
+## API 文档
+https://s.apifox.cn/94624555-e8fb-44f7-a53c-14bdd7f081da
+
 ## 规则扩展
 
 访问控制链路是：
