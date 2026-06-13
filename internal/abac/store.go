@@ -16,42 +16,23 @@ type MemoryStore struct {
 
 func NewMemoryStore() *MemoryStore {
 	return &MemoryStore{
-		users: map[string]User{
-			"u1": {ID: "u1", Name: "Alice", Department: "legal", Region: "CN", Points: 100},
-			"u2": {ID: "u2", Name: "Bob", Department: "legal", Region: "US", Points: 30},
-			"u3": {ID: "u3", Name: "Carol", Department: "finance", Region: "CN", Points: 5},
-		},
-		documents: map[string]Document{
-			"doc1": {
-				ID:         "doc1",
-				Title:      "Legal Draft",
-				OwnerID:    "u1",
-				Department: "legal",
-				Status:     StatusDraft,
-				AllowedUsers: map[string]Permission{
-					"u2": {CanView: true, CanEdit: false},
-				},
-				AllowedRegions: map[string]bool{"CN": true},
-				MinPoints:      10,
-				StartHour:      9,
-				EndHour:        18,
-			},
-			"doc2": {
-				ID:         "doc2",
-				Title:      "Finance Report",
-				OwnerID:    "u3",
-				Department: "finance",
-				Status:     StatusPublished,
-				AllowedUsers: map[string]Permission{
-					"u1": {CanView: true, CanEdit: true},
-				},
-				AllowedRegions: map[string]bool{"CN": true, "US": true},
-				MinPoints:      0,
-				StartHour:      0,
-				EndHour:        24,
-			},
-		},
+		users:     map[string]User{},
+		documents: map[string]Document{},
 	}
+}
+
+func (s *MemoryStore) SaveUser(user User) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.users[user.ID] = user
+}
+
+func (s *MemoryStore) SaveDocument(doc Document) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	s.documents[doc.ID] = doc
 }
 
 func (s *MemoryStore) User(id string) (User, bool) {

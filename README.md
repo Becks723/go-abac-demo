@@ -34,3 +34,27 @@ curl -X POST http://localhost:8888/events \
 ```bash
 curl http://localhost:8888/users/u1/points
 ```
+
+## 规则扩展
+
+访问控制链路是：
+
+`HTTP handler -> Service.CheckAccess -> Enforcer.Enforce -> Rule`
+
+新增规则时实现 `Rule` 接口，然后注册到 `Enforcer` 即可，不需要改 `CheckAccess`：
+
+```go
+rule := abac.NewRuleFunc("vip-user", func(ctx abac.AccessContext) abac.RuleResult {
+    if ctx.User.ID == "vip-user" {
+        return abac.RuleResult{
+            Effect: abac.EffectAllow,
+            Status: abac.StatusAllowed,
+            Reason: "vip user allowed",
+        }
+    }
+    return abac.RuleResult{Effect: abac.EffectAbstain}
+})
+
+_ = svc.Enforcer().AddRule(rule)
+svc.Enforcer().RemoveRule("region")
+```

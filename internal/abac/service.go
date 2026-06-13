@@ -3,19 +3,22 @@ package abac
 import "fmt"
 
 type Service struct {
-	store Store
-	rules []Rule
+	store    Store
+	enforcer *Enforcer
 }
 
-func NewService(store Store) *Service {
-	return NewServiceWithRules(store, DefaultRules())
-}
-
-func NewServiceWithRules(store Store, rules []Rule) *Service {
-	return &Service{
-		store: store,
-		rules: rules,
+func NewServiceWithEnforcer(store Store, enforcer *Enforcer) *Service {
+	if enforcer == nil {
+		enforcer = NewEnforcer()
 	}
+	return &Service{
+		store:    store,
+		enforcer: enforcer,
+	}
+}
+
+func (s *Service) Enforcer() *Enforcer {
+	return s.enforcer
 }
 
 func (s *Service) CheckAccess(req AccessRequest) Decision {
@@ -40,7 +43,7 @@ func (s *Service) CheckAccess(req AccessRequest) Decision {
 		Request:  req,
 		Region:   region,
 	}
-	return EvaluateRules(accessCtx, s.rules)
+	return s.enforcer.Enforce(accessCtx)
 }
 
 func (s *Service) HandleEvent(event Event) (EventResult, error) {

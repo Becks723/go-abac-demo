@@ -12,7 +12,10 @@ import (
 
 func main() {
 	store := abac.NewMemoryStore()
-	svc := abac.NewService(store)
+	initDemoData(store)
+
+	enforcer := abac.NewEnforcer(defaultRules()...)
+	svc := abac.NewServiceWithEnforcer(store, enforcer)
 
 	h := server.Default(server.WithHostPorts(":8888"))
 
@@ -77,6 +80,53 @@ func main() {
 	})
 
 	h.Spin()
+}
+
+func defaultRules() []abac.Rule {
+	return []abac.Rule{
+		abac.RegionRule{},
+		abac.TimeRule{},
+		abac.PointsRule{},
+		abac.ExplicitPermissionRule{},
+		abac.SameDepartmentViewRule{},
+		abac.OwnerDraftRule{},
+	}
+}
+
+func initDemoData(store *abac.MemoryStore) {
+	store.SaveUser(abac.User{ID: "u1", Name: "Alice", Department: "legal", Region: "CN", Points: 100})
+	store.SaveUser(abac.User{ID: "u2", Name: "Bob", Department: "legal", Region: "US", Points: 30})
+	store.SaveUser(abac.User{ID: "u3", Name: "Carol", Department: "finance", Region: "CN", Points: 5})
+
+	store.SaveDocument(abac.Document{
+		ID:         "doc1",
+		Title:      "Legal Draft",
+		OwnerID:    "u1",
+		Department: "legal",
+		Status:     abac.StatusDraft,
+		AllowedUsers: map[string]abac.Permission{
+			"u2": {CanView: true, CanEdit: false},
+		},
+		AllowedRegions: map[string]bool{"CN": true},
+		MinPoints:      10,
+		StartHour:      9,
+		EndHour:        18,
+	})
+
+	store.SaveDocument(abac.Document{
+		ID:         "doc2",
+		Title:      "Finance Report",
+		OwnerID:    "u3",
+		Department: "finance",
+		Status:     abac.StatusPublished,
+		AllowedUsers: map[string]abac.Permission{
+			"u1": {CanView: true, CanEdit: true},
+		},
+		AllowedRegions: map[string]bool{"CN": true, "US": true},
+		MinPoints:      0,
+		StartHour:      0,
+		EndHour:        24,
+	})
 }
 
 type accessRequest struct {

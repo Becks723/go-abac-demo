@@ -1,13 +1,28 @@
 package abac
 
 type Rule interface {
+	ID() string
 	Evaluate(ctx AccessContext) RuleResult
 }
 
-type RuleFunc func(ctx AccessContext) RuleResult
+type RuleFunc struct {
+	id string
+	fn func(ctx AccessContext) RuleResult
+}
+
+func NewRuleFunc(id string, fn func(ctx AccessContext) RuleResult) RuleFunc {
+	return RuleFunc{id: id, fn: fn}
+}
+
+func (f RuleFunc) ID() string {
+	return f.id
+}
 
 func (f RuleFunc) Evaluate(ctx AccessContext) RuleResult {
-	return f(ctx)
+	if f.fn == nil {
+		return abstain()
+	}
+	return f.fn(ctx)
 }
 
 type AccessContext struct {
@@ -31,18 +46,7 @@ type RuleResult struct {
 	Reason string
 }
 
-func DefaultRules() []Rule {
-	return []Rule{
-		RegionRule{},
-		TimeRule{},
-		PointsRule{},
-		ExplicitPermissionRule{},
-		SameDepartmentViewRule{},
-		OwnerDraftRule{},
-	}
-}
-
-func EvaluateRules(ctx AccessContext, rules []Rule) Decision {
+func evaluateRules(ctx AccessContext, rules []Rule) Decision {
 	for _, rule := range rules {
 		result := rule.Evaluate(ctx)
 		switch result.Effect {
@@ -58,6 +62,10 @@ func EvaluateRules(ctx AccessContext, rules []Rule) Decision {
 
 type RegionRule struct{}
 
+func (RegionRule) ID() string {
+	return "region"
+}
+
 func (RegionRule) Evaluate(ctx AccessContext) RuleResult {
 	if len(ctx.Document.AllowedRegions) == 0 || ctx.Document.AllowedRegions[ctx.Region] {
 		return abstain()
@@ -66,6 +74,10 @@ func (RegionRule) Evaluate(ctx AccessContext) RuleResult {
 }
 
 type TimeRule struct{}
+
+func (TimeRule) ID() string {
+	return "time"
+}
 
 func (TimeRule) Evaluate(ctx AccessContext) RuleResult {
 	if ctx.Document.StartHour == 0 && ctx.Document.EndHour == 0 {
@@ -79,6 +91,10 @@ func (TimeRule) Evaluate(ctx AccessContext) RuleResult {
 
 type PointsRule struct{}
 
+func (PointsRule) ID() string {
+	return "points"
+}
+
 func (PointsRule) Evaluate(ctx AccessContext) RuleResult {
 	if ctx.User.Points >= ctx.Document.MinPoints {
 		return abstain()
@@ -87,6 +103,10 @@ func (PointsRule) Evaluate(ctx AccessContext) RuleResult {
 }
 
 type ExplicitPermissionRule struct{}
+
+func (ExplicitPermissionRule) ID() string {
+	return "explicit-permission"
+}
 
 func (ExplicitPermissionRule) Evaluate(ctx AccessContext) RuleResult {
 	permission, ok := ctx.Document.AllowedUsers[ctx.User.ID]
@@ -110,6 +130,10 @@ func (ExplicitPermissionRule) Evaluate(ctx AccessContext) RuleResult {
 
 type SameDepartmentViewRule struct{}
 
+func (SameDepartmentViewRule) ID() string {
+	return "same-department-view"
+}
+
 func (SameDepartmentViewRule) Evaluate(ctx AccessContext) RuleResult {
 	if ctx.Document.Department == ctx.User.Department && ctx.Request.Action == ActionView {
 		return allowRule("same department can view")
@@ -118,6 +142,10 @@ func (SameDepartmentViewRule) Evaluate(ctx AccessContext) RuleResult {
 }
 
 type OwnerDraftRule struct{}
+
+func (OwnerDraftRule) ID() string {
+	return "owner-draft"
+}
 
 func (OwnerDraftRule) Evaluate(ctx AccessContext) RuleResult {
 	if ctx.Document.OwnerID != ctx.User.ID || ctx.Document.Status != StatusDraft {
