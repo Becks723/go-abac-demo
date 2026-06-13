@@ -118,3 +118,28 @@ func TestHandleEventUpdatesPoints(t *testing.T) {
 		t.Fatalf("unexpected invite result: %+v", invited)
 	}
 }
+
+func TestCheckAccessCanInjectNewRuleWithoutChangingService(t *testing.T) {
+	store := NewMemoryStore()
+	rules := append([]Rule{
+		RuleFunc(func(ctx AccessContext) RuleResult {
+			if ctx.User.ID == "u3" && ctx.Request.Action == ActionView {
+				return allowRule("temporary business exception")
+			}
+			return abstain()
+		}),
+	}, DefaultRules()...)
+	svc := NewServiceWithRules(store, rules)
+
+	got := svc.CheckAccess(AccessRequest{
+		UserID:     "u3",
+		DocumentID: "doc1",
+		Action:     ActionView,
+		Region:     "CN",
+		Hour:       10,
+	})
+
+	if !got.Allowed || got.Reason != "temporary business exception" {
+		t.Fatalf("expected custom rule to allow request, got %+v", got)
+	}
+}

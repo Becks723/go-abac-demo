@@ -4,10 +4,18 @@ import "fmt"
 
 type Service struct {
 	store Store
+	rules []Rule
 }
 
 func NewService(store Store) *Service {
-	return &Service{store: store}
+	return NewServiceWithRules(store, DefaultRules())
+}
+
+func NewServiceWithRules(store Store, rules []Rule) *Service {
+	return &Service{
+		store: store,
+		rules: rules,
+	}
 }
 
 func (s *Service) CheckAccess(req AccessRequest) Decision {
@@ -26,31 +34,13 @@ func (s *Service) CheckAccess(req AccessRequest) Decision {
 		region = user.Region
 	}
 
-	if !isRegionAllowed(doc, region) {
-		return deny(StatusLocationDenied, "location restricted")
+	accessCtx := AccessContext{
+		User:     user,
+		Document: doc,
+		Request:  req,
+		Region:   region,
 	}
-
-	if !isHourAllowed(doc, req.Hour) {
-		return deny(StatusTimeDenied, "time restricted")
-	}
-
-	if user.Points < doc.MinPoints {
-		return deny(StatusPaymentDenied, "not enough points")
-	}
-
-	if isExplicitlyAllowed(doc, user.ID, req.Action) {
-		return allow("explicit permission matched")
-	}
-
-	if doc.Department == user.Department && req.Action == ActionView {
-		return allow("same department can view")
-	}
-
-	if doc.OwnerID == user.ID && doc.Status == StatusDraft && canOwnerDraftAction(req.Action) {
-		return allow("owner can edit draft and configure permissions")
-	}
-
-	return deny(StatusForbidden, "no matching policy")
+	return EvaluateRules(accessCtx, s.rules)
 }
 
 func (s *Service) HandleEvent(event Event) (EventResult, error) {
@@ -82,46 +72,4 @@ func pointsDelta(action Action) (int, bool) {
 	default:
 		return 0, false
 	}
-}
-
-func isExplicitlyAllowed(doc Document, userID string, action Action) bool {
-	permission, ok := doc.AllowedUsers[userID]
-	if !ok {
-		return false
-	}
-
-	switch action {
-	case ActionView:
-		return permission.CanView || permission.CanEdit
-	case ActionEdit:
-		return permission.CanEdit
-	default:
-		return false
-	}
-}
-
-func isRegionAllowed(doc Document, region string) bool {
-	if len(doc.AllowedRegions) == 0 {
-		return true
-	}
-	return doc.AllowedRegions[region]
-}
-
-func isHourAllowed(doc Document, hour int) bool {
-	if doc.StartHour == 0 && doc.EndHour == 0 {
-		return true
-	}
-	return hour >= doc.StartHour && hour < doc.EndHour
-}
-
-func canOwnerDraftAction(action Action) bool {
-	return action == ActionView || action == ActionEdit
-}
-
-func allow(reason string) Decision {
-	return Decision{Allowed: true, Status: StatusAllowed, Reason: reason}
-}
-
-func deny(status Status, reason string) Decision {
-	return Decision{Allowed: false, Status: status, Reason: reason}
 }
